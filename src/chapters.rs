@@ -94,8 +94,8 @@ pub fn read_chapters_from_mkv(mkv_file: &str) -> anyhow::Result<Chapters> {
 
     for chapter in &chapters {
         println!(
-            "Start: {}, End: {:?}, Title: {}",
-            chapter.start_time, chapter.end_time, chapter.display.title
+            "File: {}, Start: {}, End: {:?}, Title: {}",
+            mkv_file, chapter.start_time, chapter.end_time, chapter.display.title
         );
     }
 
