@@ -113,7 +113,11 @@ pub struct MkvMetadata {
     pub duration: f64,
 }
 
-pub fn process_mkv_file(entry: &EntryKind, base_dir: &Path) -> Result<MkvMetadata> {
+pub fn process_mkv_file(
+    entry: &EntryKind,
+    base_dir: &Path,
+    output_dir: &Path,
+) -> Result<MkvMetadata> {
     // Only process files
     let path = match entry {
         EntryKind::File(p) => p,
@@ -142,7 +146,7 @@ pub fn process_mkv_file(entry: &EntryKind, base_dir: &Path) -> Result<MkvMetadat
         .ok_or_else(|| anyhow::anyhow!("File is directly in base_dir without subdirectory"))?;
 
     // Build output path
-    let output_path = Path::new("output")
+    let output_path = output_dir
         .join(&top_level_dir)
         .join(path.file_name().unwrap())
         .with_extension("chapters.txt");

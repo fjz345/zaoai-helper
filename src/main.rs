@@ -2,7 +2,7 @@ use std::{env, path::Path};
 
 use crate::{
     chapters::read_chapters_from_mkv,
-    file::{list_dir_with_kind, relative_after, relative_before},
+    file::{clear_folder_contents, list_dir_with_kind, relative_after, relative_before},
     utils::{list_dir_with_kind_has_chapters_split, process_mkv_file},
 };
 
@@ -67,11 +67,14 @@ fn main() {
             .collect::<Vec<_>>()
     );
 
+    let output_dir = Path::new("output");
+    clear_folder_contents(output_dir).expect("Could not clear");
+
     let mut file_stack = with_chapters;
     while let Some(item) = file_stack.pop() {
         match &item {
             file::EntryKind::File(_path_buf) => {
-                let b = process_mkv_file(&item, &Path::new("test\\test_Source"));
+                let b = process_mkv_file(&item, &Path::new("test\\test_Source"), output_dir);
                 match b {
                     Ok(o) => {}
                     Err(e) => println!("{e}"),

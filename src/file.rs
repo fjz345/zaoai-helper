@@ -89,3 +89,18 @@ pub fn relative_before(path: &Path, base: &Path) -> Option<PathBuf> {
 
     Some(new_path)
 }
+
+pub fn clear_folder_contents(folder: &Path) -> std::io::Result<()> {
+    if folder.is_dir() {
+        for entry_result in fs::read_dir(folder)? {
+            let entry = entry_result?;
+            let path = entry.path();
+            if path.is_dir() {
+                fs::remove_dir_all(&path)?; // recursively remove subfolder
+            } else {
+                fs::remove_file(&path)?; // remove file
+            }
+        }
+    }
+    Ok(())
+}
