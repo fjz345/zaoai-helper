@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use serde_xml_rs::de::from_str;
 use std::{fs, process::Command};
@@ -10,14 +11,26 @@ use crate::utils::get_third_party_binary;
 pub fn extract_chapters(mkv_file_path: &str, out_xml: &str) -> anyhow::Result<()> {
     let tool_path = get_third_party_binary("mkvextract.exe");
 
+    // 💥 Remove any previous output
+    let _ = fs::remove_file(out_xml);
+
+    // 🛠 Run the tool
     let status = Command::new(tool_path)
         .arg(mkv_file_path)
         .arg("chapters")
         .arg(out_xml)
         .status()?;
 
+    // ❌ Check for tool errors
     if !status.success() {
         anyhow::bail!("Failed to extract chapters from {mkv_file_path}");
+    }
+
+    // 🧪 Confirm output file exists and is non-empty
+    let metadata = fs::metadata(out_xml)
+        .with_context(|| format!("Expected output file {} was not created", out_xml))?;
+    if metadata.len() == 0 {
+        anyhow::bail!("Chapters not found in {}", mkv_file_path);
     }
 
     Ok(())

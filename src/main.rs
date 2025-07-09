@@ -30,8 +30,8 @@ fn main() {
     // let input_file = &args[1];
     // println!("Input path: {}", input_file);
 
-    let test_file = "test/test1.mkv";
-    let _result = read_chapters_from_mkv(test_file);
+    // let test_file = "test/test1.mkv";
+    // let _result = read_chapters_from_mkv(test_file);
 
     let result2 = list_dir_with_kind(r#"test\test_Source"#, true);
     let r = result2.expect("failed");
@@ -39,6 +39,6 @@ fn main() {
     let result2 = list_dir_with_kind_has_chapters_split(&r, true);
     let r = result2.expect("failed");
 
-    println!("{:?}", r.0);
-    println!("{:?}", r.1);
+    println!("With chapters: {:?}", r.0);
+    println!("Without chapters: {:?}", r.1);
 }
