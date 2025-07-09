@@ -1,0 +1,72 @@
+use serde::Deserialize;
+use serde_xml_rs::de::from_str;
+use std::{fs, path::Path, process::Command};
+
+fn extract_chapters(mkv_file: &str, out_xml: &str) -> anyhow::Result<()> {
+    let tool_path = Path::new("third_party/bin/mkvextract.exe");
+
+    let status = Command::new(tool_path)
+        .arg(mkv_file)
+        .arg("chapters")
+        .arg(out_xml)
+        .status()?;
+
+    if !status.success() {
+        anyhow::bail!("Failed to extract chapters from {mkv_file}");
+    }
+
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Chapters {
+    #[serde(rename = "EditionEntry")]
+    edition_entry: EditionEntry,
+}
+
+#[derive(Debug, Deserialize)]
+struct EditionEntry {
+    #[serde(rename = "ChapterAtom", default)]
+    chapters: Vec<ChapterAtom>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChapterAtom {
+    #[serde(rename = "ChapterTimeStart")]
+    start_time: String,
+
+    #[serde(rename = "ChapterTimeEnd")]
+    end_time: Option<String>,
+
+    #[serde(rename = "ChapterDisplay")]
+    display: ChapterDisplay,
+}
+
+#[derive(Debug, Deserialize)]
+struct ChapterDisplay {
+    #[serde(rename = "ChapterString")]
+    title: String,
+}
+
+fn parse_chapter_xml(xml: &str) -> anyhow::Result<Chapters> {
+    let chapters: Chapters = from_str(xml)?;
+    Ok(chapters)
+}
+
+pub fn read_chapters_from_mkv(mkv_file: &str) -> anyhow::Result<()> {
+    let xml_file = "chapters.xml";
+
+    extract_chapters(mkv_file, xml_file)?;
+
+    let xml_content = fs::read_to_string(xml_file)?;
+    let parsed = parse_chapter_xml(&xml_content)?;
+
+    for chapter in parsed.edition_entry.chapters {
+        println!(
+            "Start: {}, End: {:?}, Title: {}",
+            chapter.start_time, chapter.end_time, chapter.display.title
+        );
+    }
+
+    Ok(())
+}
