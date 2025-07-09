@@ -1,8 +1,7 @@
-use std::{env, fs};
+use std::env;
 
 use crate::{
-    chapters::{extract_chapters, parse_chapter_xml, read_chapters_from_mkv},
-    file::list_dir_with_kind,
+    chapters::read_chapters_from_mkv, file::list_dir_with_kind,
     utils::list_dir_with_kind_has_chapters_split,
 };
 
@@ -19,6 +18,7 @@ Want to do:
 */
 
 fn main() {
+    #[allow(unused)]
     let args: Vec<String> = env::args().collect();
 
     // // args[0] is the program name
@@ -31,7 +31,7 @@ fn main() {
     // println!("Input path: {}", input_file);
 
     let test_file = "test/test1.mkv";
-    let result = read_chapters_from_mkv(test_file);
+    let _result = read_chapters_from_mkv(test_file);
 
     let result2 = list_dir_with_kind(r#"test\test_Source"#, true);
     let r = result2.expect("failed");

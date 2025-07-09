@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 pub enum EntryKind {
     File(PathBuf),
     Directory(PathBuf),
+    #[allow(dead_code)]
     Other(PathBuf), // symlink, device, etc.
 }
 

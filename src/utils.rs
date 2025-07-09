@@ -3,7 +3,7 @@ use crate::{
     file::{EntryKind, list_dir_with_kind},
     temp::copy_to_temp,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn get_third_party_binary(name: &str) -> PathBuf {
@@ -79,7 +79,7 @@ fn has_chapters(path: &Path) -> Result<bool> {
     if let Some(ext) = path.extension() {
         if ext == "mkv" {
             // Copy only this file to temp
-            let (temp_dir, temp_file_path) = copy_to_temp(path)?;
+            let (_temp_dir, temp_file_path) = copy_to_temp(path)?;
             let mkv_file_str = temp_file_path
                 .to_str()
                 .ok_or_else(|| anyhow::anyhow!("Invalid temp path string"))?;

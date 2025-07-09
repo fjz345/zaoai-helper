@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 use serde_xml_rs::de::from_str;
-use std::{fs, path::Path, process::Command};
+use std::{fs, process::Command};
 use std::{fs::File, io::Write};
 
 use crate::utils::get_third_party_binary;
