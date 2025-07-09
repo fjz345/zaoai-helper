@@ -19,8 +19,6 @@ pub fn extract_chapters(mkv_file_path: impl AsRef<Path>) -> anyhow::Result<Chapt
 
     let tool_path = get_third_party_binary("mkvextract.exe");
 
-    // Use correct argument order
-    // Use correct argument order^M
     let status = Command::new(tool_path)
         .arg(mkv_file_path.as_ref())
         .arg("chapters")
