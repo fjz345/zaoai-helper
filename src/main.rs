@@ -33,7 +33,7 @@ fn main() {
     let test_file = "test/test1.mkv";
     let result = read_chapters_from_mkv(test_file);
 
-    let result2 = list_dir_with_kind(r#"\\Znas\Plex\Series"#, true);
+    let result2 = list_dir_with_kind(r#"test\test_Source"#, true);
     let r = result2.expect("failed");
 
     let result2 = list_dir_with_kind_has_chapters_split(&r, true);
