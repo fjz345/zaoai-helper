@@ -3,6 +3,13 @@ name = "zaohelp"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "zaohelper"
+path = "src/main.rs"
+
 [dependencies]
 quick-xml = "0.31"       # for parsing/writing chapter XML
 serde = { version = "1.0", features = ["derive"] }

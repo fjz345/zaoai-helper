@@ -3,8 +3,10 @@ use serde_xml_rs::de::from_str;
 use std::{fs, path::Path, process::Command};
 use std::{fs::File, io::Write};
 
+use crate::utils::get_third_party_binary;
+
 pub fn extract_chapters(mkv_file: &str, out_xml: &str) -> anyhow::Result<()> {
-    let tool_path = Path::new("third_party/bin/mkvextract.exe");
+    let tool_path = get_third_party_binary("mkvextract.exe");
 
     let status = Command::new(tool_path)
         .arg(mkv_file)
