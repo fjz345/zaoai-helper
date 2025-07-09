@@ -1,6 +1,9 @@
 use std::{env, fs};
 
-use crate::chapters::{extract_chapters, parse_chapter_xml, read_chapters_from_mkv};
+use crate::{
+    chapters::{extract_chapters, parse_chapter_xml, read_chapters_from_mkv},
+    file::list_dir_with_kind,
+};
 
 mod chapters;
 mod file;
@@ -27,5 +30,8 @@ fn main() {
 
     let test_file = "test/test1.mkv";
     let result = read_chapters_from_mkv(test_file);
-    result.expect("failed");
+
+    let result2 = list_dir_with_kind("test", true);
+    let r = result2.expect("failed");
+    println!("{:?}", r);
 }
