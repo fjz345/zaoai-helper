@@ -3,10 +3,12 @@ use std::{env, fs};
 use crate::{
     chapters::{extract_chapters, parse_chapter_xml, read_chapters_from_mkv},
     file::list_dir_with_kind,
+    utils::list_dir_with_kind_has_chapters_split,
 };
 
 mod chapters;
 mod file;
+mod temp;
 mod utils;
 
 /*
@@ -31,7 +33,12 @@ fn main() {
     let test_file = "test/test1.mkv";
     let result = read_chapters_from_mkv(test_file);
 
-    let result2 = list_dir_with_kind("test", true);
+    let result2 = list_dir_with_kind(r#"\\Znas\Plex\Series"#, true);
     let r = result2.expect("failed");
-    println!("{:?}", r);
+
+    let result2 = list_dir_with_kind_has_chapters_split(&r, true);
+    let r = result2.expect("failed");
+
+    println!("{:?}", r.0);
+    println!("{:?}", r.1);
 }

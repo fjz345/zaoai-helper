@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EntryKind {
     File(PathBuf),
     Directory(PathBuf),

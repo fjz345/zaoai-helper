@@ -5,17 +5,17 @@ use std::{fs::File, io::Write};
 
 use crate::utils::get_third_party_binary;
 
-pub fn extract_chapters(mkv_file: &str, out_xml: &str) -> anyhow::Result<()> {
+pub fn extract_chapters(mkv_file_path: &str, out_xml: &str) -> anyhow::Result<()> {
     let tool_path = get_third_party_binary("mkvextract.exe");
 
     let status = Command::new(tool_path)
-        .arg(mkv_file)
+        .arg(mkv_file_path)
         .arg("chapters")
         .arg(out_xml)
         .status()?;
 
     if !status.success() {
-        anyhow::bail!("Failed to extract chapters from {mkv_file}");
+        anyhow::bail!("Failed to extract chapters from {mkv_file_path}");
     }
 
     Ok(())
@@ -25,6 +25,32 @@ pub fn extract_chapters(mkv_file: &str, out_xml: &str) -> anyhow::Result<()> {
 pub struct Chapters {
     #[serde(rename = "EditionEntry")]
     edition_entry: EditionEntry,
+}
+
+impl Chapters {
+    pub fn iter(&self) -> impl Iterator<Item = &ChapterAtom> {
+        self.edition_entry.chapters.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ChapterAtom> {
+        self.edition_entry.chapters.iter_mut()
+    }
+}
+
+impl<'a> IntoIterator for &'a Chapters {
+    type Item = &'a ChapterAtom;
+    type IntoIter = std::slice::Iter<'a, ChapterAtom>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.edition_entry.chapters.iter()
+    }
+}
+impl<'a> IntoIterator for &'a mut Chapters {
+    type Item = &'a mut ChapterAtom;
+    type IntoIter = std::slice::IterMut<'a, ChapterAtom>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.edition_entry.chapters.iter_mut()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -56,22 +82,22 @@ pub fn parse_chapter_xml(xml: &str) -> anyhow::Result<Chapters> {
     Ok(chapters)
 }
 
-pub fn read_chapters_from_mkv(mkv_file: &str) -> anyhow::Result<()> {
+pub fn read_chapters_from_mkv(mkv_file: &str) -> anyhow::Result<Chapters> {
     let xml_file = "chapters.xml";
 
     extract_chapters(mkv_file, xml_file)?;
 
     let xml_content = fs::read_to_string(xml_file)?;
-    let parsed = parse_chapter_xml(&xml_content)?;
+    let chapters = parse_chapter_xml(&xml_content)?;
 
-    for chapter in parsed.edition_entry.chapters {
+    for chapter in &chapters {
         println!(
             "Start: {}, End: {:?}, Title: {}",
             chapter.start_time, chapter.end_time, chapter.display.title
         );
     }
 
-    Ok(())
+    Ok(chapters)
 }
 
 fn chapters_to_xml(chapters: &Chapters) -> anyhow::Result<String> {
