@@ -1,8 +1,9 @@
 use std::env;
 
 use crate::{
-    chapters::read_chapters_from_mkv, file::list_dir_with_kind,
-    utils::list_dir_with_kind_has_chapters_split,
+    chapters::read_chapters_from_mkv,
+    file::list_dir_with_kind,
+    utils::{list_dir_with_kind_has_chapters_split, process_mkv_file},
 };
 
 mod chapters;
@@ -37,8 +38,51 @@ fn main() {
     let r = result2.expect("failed");
 
     let result2 = list_dir_with_kind_has_chapters_split(&r, true);
-    let r = result2.expect("failed");
+    let (with_chapters, without_chapters) = result2.expect("failed");
 
-    println!("With chapters: {:?}", r.0);
-    println!("Without chapters: {:?}", r.1);
+    println!(
+        "With chapters: {:?}",
+        with_chapters
+            .iter()
+            .map(|f| match f {
+                file::EntryKind::File(path_buf)
+                | file::EntryKind::Directory(path_buf)
+                | file::EntryKind::Other(path_buf) => {
+                    path_buf.file_stem().unwrap().display()
+                }
+            })
+            .collect::<Vec<_>>()
+    );
+    println!(
+        "Without chapters: {:?}",
+        without_chapters
+            .iter()
+            .map(|f| match f {
+                file::EntryKind::File(path_buf)
+                | file::EntryKind::Directory(path_buf)
+                | file::EntryKind::Other(path_buf) => {
+                    path_buf.file_stem().unwrap().display()
+                }
+            })
+            .collect::<Vec<_>>()
+    );
+
+    let mut file_stack = with_chapters;
+    while let Some(item) = file_stack.pop() {
+        match &item {
+            file::EntryKind::File(_path_buf) => {
+                let b = process_mkv_file(&item);
+                b.expect("ASD");
+            }
+            file::EntryKind::Directory(path_buf) => match list_dir_with_kind(path_buf, true) {
+                Ok(res) => {
+                    for r in res {
+                        file_stack.push(r);
+                    }
+                }
+                Err(e) => println!("{:?}", e),
+            },
+            file::EntryKind::Other(_path_buf) => todo!(),
+        }
+    }
 }

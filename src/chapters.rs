@@ -3,37 +3,46 @@
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use serde_xml_rs::de::from_str;
+use std::ffi::{OsStr, OsString};
+use std::fmt::{Display, Write};
+use std::fs::File;
+use std::path::{Path, PathBuf};
 use std::{fs, process::Command};
-use std::{fs::File, io::Write};
 
+use crate::temp::{copy_to_temp, create_temp_file};
 use crate::utils::get_third_party_binary;
 
-pub fn extract_chapters(mkv_file_path: &str, out_xml: &str) -> anyhow::Result<()> {
+pub fn extract_chapters(mkv_file_path: impl AsRef<Path>) -> anyhow::Result<Chapters> {
+    let (_temp_dir, temp_file) =
+        create_temp_file("chapters.xml").expect("failed to create temp file");
+    let _ = fs::remove_file(&temp_file);
+
     let tool_path = get_third_party_binary("mkvextract.exe");
 
-    // 💥 Remove any previous output
-    let _ = fs::remove_file(out_xml);
-
-    // 🛠 Run the tool
+    // Use correct argument order
+    // Use correct argument order^M
     let status = Command::new(tool_path)
-        .arg(mkv_file_path)
+        .arg(mkv_file_path.as_ref())
         .arg("chapters")
-        .arg(out_xml)
+        .arg(&temp_file)
         .status()?;
 
-    // ❌ Check for tool errors
     if !status.success() {
-        anyhow::bail!("Failed to extract chapters from {mkv_file_path}");
+        anyhow::bail!(
+            "Failed to extract chapters from {}",
+            mkv_file_path.as_ref().display()
+        );
     }
 
-    // 🧪 Confirm output file exists and is non-empty
-    let metadata = fs::metadata(out_xml)
-        .with_context(|| format!("Expected output file {} was not created", out_xml))?;
+    let metadata = fs::metadata(&temp_file)?;
     if metadata.len() == 0 {
-        anyhow::bail!("Chapters not found in {}", mkv_file_path);
+        anyhow::bail!("Chapters not found in {}", mkv_file_path.as_ref().display());
     }
 
-    Ok(())
+    let xml_content = std::fs::read_to_string(&temp_file)?;
+    let chapters = parse_chapter_xml(&xml_content)?;
+
+    Ok(chapters)
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,6 +57,25 @@ impl Chapters {
     }
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ChapterAtom> {
         self.edition_entry.chapters.iter_mut()
+    }
+
+    pub fn to_os_string(&self) -> OsString {
+        let mut output = String::new();
+
+        for chapter in self {
+            let _ = writeln!(
+                &mut output,
+                "Start: {:<12} End: {:<12} Title: {}",
+                chapter.start_time,
+                chapter
+                    .end_time
+                    .clone()
+                    .unwrap_or_else(|| "???".to_string()),
+                chapter.display.title
+            );
+        }
+
+        OsString::from(output)
     }
 }
 
@@ -77,19 +105,19 @@ pub struct EditionEntry {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ChapterAtom {
     #[serde(rename = "ChapterTimeStart")]
-    start_time: String,
+    pub start_time: String,
 
     #[serde(rename = "ChapterTimeEnd")]
-    end_time: Option<String>,
+    pub end_time: Option<String>,
 
     #[serde(rename = "ChapterDisplay")]
-    display: ChapterDisplay,
+    pub display: ChapterDisplay,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct ChapterDisplay {
+pub struct ChapterDisplay {
     #[serde(rename = "ChapterString")]
-    title: String,
+    pub title: String,
 }
 
 pub fn parse_chapter_xml(xml: &str) -> anyhow::Result<Chapters> {
@@ -97,20 +125,18 @@ pub fn parse_chapter_xml(xml: &str) -> anyhow::Result<Chapters> {
     Ok(chapters)
 }
 
-pub fn read_chapters_from_mkv(mkv_file: &str) -> anyhow::Result<Chapters> {
-    let xml_file = "chapters.xml";
+pub fn read_chapters_from_mkv(mkv_file: impl AsRef<Path>) -> anyhow::Result<Chapters> {
+    let chapters = extract_chapters(&mkv_file)?;
 
-    extract_chapters(mkv_file, xml_file)?;
-
-    let xml_content = fs::read_to_string(xml_file)?;
-    let chapters = parse_chapter_xml(&xml_content)?;
-
-    for chapter in &chapters {
-        println!(
-            "File: {}, Start: {}, End: {:?}, Title: {}",
-            mkv_file, chapter.start_time, chapter.end_time, chapter.display.title
-        );
-    }
+    // for chapter in &chapters {
+    //     println!(
+    //         "File: {}, Start: {}, End: {:?}, Title: {}",
+    //         &mkv_file.as_ref().file_name().unwrap().display(),
+    //         chapter.start_time,
+    //         chapter.end_time,
+    //         chapter.display.title
+    //     );
+    // }
 
     Ok(chapters)
 }
@@ -121,16 +147,8 @@ fn chapters_to_xml(chapters: &Chapters) -> anyhow::Result<String> {
 }
 
 pub fn add_chapter_to_mkv(mkv_file: &str, timestamp: &str, title: &str) -> anyhow::Result<()> {
-    let xml_file = "chapters.xml";
+    let mut chapters = extract_chapters(mkv_file)?;
 
-    // Step 1: Extract current chapters
-    extract_chapters(mkv_file, xml_file)?;
-
-    // Step 2: Read and parse chapters
-    let xml_content = std::fs::read_to_string(xml_file)?;
-    let mut chapters = parse_chapter_xml(&xml_content)?;
-
-    // Step 3: Create and append new chapter
     let new_chapter = ChapterAtom {
         start_time: timestamp.to_string(),
         end_time: None,
@@ -140,18 +158,18 @@ pub fn add_chapter_to_mkv(mkv_file: &str, timestamp: &str, title: &str) -> anyho
     };
     chapters.edition_entry.chapters.push(new_chapter);
 
-    // Step 4: Serialize back to XML
     let xml_output = chapters_to_xml(&chapters)?;
 
-    // Step 5: Write XML back to file
-    let mut file = File::create(xml_file)?;
+    use std::io::Write;
+    let (_temp_dir, temp_file) = create_temp_file("add_chapter_to_mkv_chapters.xml")?;
+    let mut file = File::create(&temp_file)?;
     file.write_all(xml_output.as_bytes())?;
 
     // Step 6: Apply changes via mkvpropedit
     let status = Command::new("third_party/bin/mkvpropedit.exe")
         .arg(mkv_file)
         .arg("--chapters")
-        .arg(xml_file)
+        .arg(&temp_file)
         .status()?;
 
     if !status.success() {

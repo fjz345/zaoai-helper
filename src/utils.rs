@@ -1,10 +1,15 @@
 use crate::{
-    chapters::read_chapters_from_mkv,
+    chapters::{Chapters, read_chapters_from_mkv},
     file::{EntryKind, list_dir_with_kind},
     temp::copy_to_temp,
 };
-use anyhow::Result;
-use std::path::{Path, PathBuf};
+use anyhow::{Error, Result};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
+
+use std::io::Write;
 
 pub(crate) fn get_third_party_binary(name: &str) -> PathBuf {
     // CARGO_MANIFEST_DIR will be the zaohelper/ path even when used from zaoai
@@ -57,6 +62,10 @@ fn all_files_have_chapters(dir_path: &Path, cull_empty_folders: bool) -> Result<
     for entry in entries {
         match entry {
             EntryKind::File(ref path) => {
+                // ignore .txt files
+                if path.extension().unwrap_or_default() == "txt" {
+                    continue;
+                }
                 if !has_chapters(path)? {
                     return Ok(false);
                 }
@@ -76,6 +85,7 @@ fn all_files_have_chapters(dir_path: &Path, cull_empty_folders: bool) -> Result<
 }
 
 fn has_chapters(path: &Path) -> Result<bool> {
+    println!("{:?}", path);
     if let Some(ext) = path.extension() {
         if ext == "mkv" {
             // Copy only this file to temp
@@ -85,6 +95,7 @@ fn has_chapters(path: &Path) -> Result<bool> {
                 .ok_or_else(|| anyhow::anyhow!("Invalid temp path string"))?;
 
             // Read chapters from local copy
+
             let chapters = match read_chapters_from_mkv(mkv_file_str) {
                 Ok(chaps) => chaps,
                 Err(_) => return Ok(false),
@@ -94,4 +105,60 @@ fn has_chapters(path: &Path) -> Result<bool> {
         }
     }
     Ok(false)
+}
+
+pub struct MkvMetadata {
+    pub path: PathBuf,
+    pub chapters: Chapters,
+    pub duration: f64,
+}
+
+pub fn process_mkv_file(entry: &EntryKind) -> Result<MkvMetadata> {
+    // Only process files
+    let path = match entry {
+        EntryKind::File(p) => p,
+        _ => return Err(anyhow::anyhow!("Only processes files")),
+    };
+
+    // Check if it's an .mkv file
+    if path.extension().and_then(|s| s.to_str()).unwrap_or("") != "mkv" {
+        let string = format!("Only .mkv supported for now, {}", path.display());
+        return Err(anyhow::anyhow!(string));
+    }
+
+    println!("Processing: {}", path.display());
+
+    // Read chapters
+    let chapters = read_chapters_from_mkv(path.to_str().unwrap())?;
+
+    let metadata = MkvMetadata {
+        path: path.clone(),
+        chapters,
+        duration: 20.0,
+    };
+
+    // Prepare output file path: original.mkv → original.chapters.txt
+    let mut output_path = Path::new("output/")
+        .join(path.file_name().unwrap())
+        .with_extension("chapters.txt");
+
+    println!("{:?}", output_path);
+
+    // Open the file for writing
+    let mut file = File::create(&output_path)?;
+
+    // Write chapters in human-readable format
+    for chapter in &metadata.chapters {
+        writeln!(
+            file,
+            "Start: {:<12} End: {:<12} Title: {}",
+            chapter.start_time,
+            chapter.end_time.clone().unwrap_or("???".to_string()),
+            chapter.display.title
+        )?;
+    }
+
+    println!("Wrote: {}", output_path.display());
+
+    Ok(metadata)
 }

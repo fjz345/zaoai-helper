@@ -5,6 +5,18 @@ use std::{
 };
 use tempfile::TempDir;
 
+pub fn create_temp_file<P: AsRef<Path>>(source: P) -> Result<(TempDir, PathBuf)> {
+    let temp_dir = tempfile::tempdir().context("Failed to create temporary directory")?;
+    let temp_path = temp_dir.path().join(
+        source
+            .as_ref()
+            .file_name()
+            .ok_or_else(|| anyhow::anyhow!("Invalid source filename"))?,
+    );
+
+    Ok((temp_dir, temp_path))
+}
+
 /// Recursively copies a file or directory to a temp directory.
 /// Returns the path to the new copy.
 pub fn copy_to_temp<P: AsRef<Path>>(source: P) -> Result<(TempDir, PathBuf)> {
