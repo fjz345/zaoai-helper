@@ -1,11 +1,11 @@
 use crate::{
     chapters::{Chapters, read_chapters_from_mkv},
-    file::{EntryKind, list_dir_with_kind},
+    file::{EntryKind, get_top_level_dir, list_dir_with_kind},
     temp::copy_to_temp,
 };
 use anyhow::{Error, Result};
 use std::{
-    fs::File,
+    fs::{self, File},
     path::{Path, PathBuf},
 };
 
@@ -113,7 +113,7 @@ pub struct MkvMetadata {
     pub duration: f64,
 }
 
-pub fn process_mkv_file(entry: &EntryKind) -> Result<MkvMetadata> {
+pub fn process_mkv_file(entry: &EntryKind, base_dir: &Path) -> Result<MkvMetadata> {
     // Only process files
     let path = match entry {
         EntryKind::File(p) => p,
@@ -137,23 +137,39 @@ pub fn process_mkv_file(entry: &EntryKind) -> Result<MkvMetadata> {
         duration: 20.0,
     };
 
-    // Prepare output file path: original.mkv → original.chapters.txt
-    let mut output_path = Path::new("output/")
+    // Get the top-level directory under base_dir
+    let top_level_dir = get_top_level_dir(path, base_dir)?
+        .ok_or_else(|| anyhow::anyhow!("File is directly in base_dir without subdirectory"))?;
+
+    // Build output path
+    let output_path = Path::new("output")
+        .join(&top_level_dir)
         .join(path.file_name().unwrap())
         .with_extension("chapters.txt");
 
-    println!("{:?}", output_path);
+    if let Some(parent) = output_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
 
-    // Open the file for writing
+    // Check if output file already exists and warn
+    if output_path.exists() {
+        eprintln!(
+            "Warning: Output file already exists and will be overwritten: {}",
+            output_path.display()
+        );
+    }
+
     let mut file = File::create(&output_path)?;
 
-    // Write chapters in human-readable format
     for chapter in &metadata.chapters {
         writeln!(
             file,
             "Start: {:<12} End: {:<12} Title: {}",
             chapter.start_time,
-            chapter.end_time.clone().unwrap_or("???".to_string()),
+            chapter
+                .end_time
+                .clone()
+                .unwrap_or_else(|| "???".to_string()),
             chapter.display.title
         )?;
     }

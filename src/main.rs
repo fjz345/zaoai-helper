@@ -1,8 +1,8 @@
-use std::env;
+use std::{env, path::Path};
 
 use crate::{
     chapters::read_chapters_from_mkv,
-    file::list_dir_with_kind,
+    file::{list_dir_with_kind, relative_after, relative_before},
     utils::{list_dir_with_kind_has_chapters_split, process_mkv_file},
 };
 
@@ -71,8 +71,11 @@ fn main() {
     while let Some(item) = file_stack.pop() {
         match &item {
             file::EntryKind::File(_path_buf) => {
-                let b = process_mkv_file(&item);
-                b.expect("ASD");
+                let b = process_mkv_file(&item, &Path::new("test\\test_Source"));
+                match b {
+                    Ok(o) => {}
+                    Err(e) => println!("{e}"),
+                }
             }
             file::EntryKind::Directory(path_buf) => match list_dir_with_kind(path_buf, true) {
                 Ok(res) => {
