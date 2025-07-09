@@ -85,7 +85,6 @@ fn all_files_have_chapters(dir_path: &Path, cull_empty_folders: bool) -> Result<
 }
 
 fn has_chapters(path: &Path) -> Result<bool> {
-    println!("{:?}", path);
     if let Some(ext) = path.extension() {
         if ext == "mkv" {
             // Copy only this file to temp
@@ -129,8 +128,6 @@ pub fn process_mkv_file(
         let string = format!("Only .mkv supported for now, {}", path.display());
         return Err(anyhow::anyhow!(string));
     }
-
-    println!("Processing: {}", path.display());
 
     // Read chapters
     let chapters = read_chapters_from_mkv(path.to_str().unwrap())?;

@@ -1,8 +1,8 @@
-use std::{env, path::Path};
+use std::{env, fmt::Display, path::Path};
 
 use crate::{
-    chapters::read_chapters_from_mkv,
-    file::{clear_folder_contents, list_dir_with_kind, relative_after, relative_before},
+    chapters::{Chapters, read_chapters_from_mkv},
+    file::{EntryKind, clear_folder_contents, list_dir_with_kind, relative_after, relative_before},
     utils::{list_dir_with_kind_has_chapters_split, process_mkv_file},
 };
 
@@ -34,37 +34,26 @@ fn main() {
     // let test_file = "test/test1.mkv";
     // let _result = read_chapters_from_mkv(test_file);
 
-    let result2 = list_dir_with_kind(r#"test\test_Source"#, true);
-    let r = result2.expect("failed");
+    let list_of_entries = list_dir_with_kind(r#"test\test_Source"#, true).expect("failed");
 
-    let result2 = list_dir_with_kind_has_chapters_split(&r, true);
-    let (with_chapters, without_chapters) = result2.expect("failed");
+    let (with_chapters, without_chapters) =
+        list_dir_with_kind_has_chapters_split(&list_of_entries, true).expect("failed");
 
-    println!(
-        "With chapters: {:?}",
-        with_chapters
-            .iter()
+    let entry_kind_vec_format = |vec: &Vec<EntryKind>| -> Vec<String> {
+        vec.iter()
             .map(|f| match f {
-                file::EntryKind::File(path_buf)
-                | file::EntryKind::Directory(path_buf)
-                | file::EntryKind::Other(path_buf) => {
-                    path_buf.file_stem().unwrap().display()
+                EntryKind::File(path_buf)
+                | EntryKind::Directory(path_buf)
+                | EntryKind::Other(path_buf) => {
+                    path_buf.file_stem().unwrap().to_string_lossy().to_string()
                 }
             })
             .collect::<Vec<_>>()
-    );
+    };
+    println!("With chapters: {:?}", entry_kind_vec_format(&with_chapters));
     println!(
         "Without chapters: {:?}",
-        without_chapters
-            .iter()
-            .map(|f| match f {
-                file::EntryKind::File(path_buf)
-                | file::EntryKind::Directory(path_buf)
-                | file::EntryKind::Other(path_buf) => {
-                    path_buf.file_stem().unwrap().display()
-                }
-            })
-            .collect::<Vec<_>>()
+        entry_kind_vec_format(&without_chapters)
     );
 
     let output_dir = Path::new("output");

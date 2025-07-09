@@ -31,12 +31,10 @@ pub fn list_dir_with_kind<P: AsRef<Path>>(
             EntryKind::File(path)
         } else if file_type.is_dir() {
             if cull_empty_folders {
-                // Check if the directory is empty
                 let mut dir_iter = fs::read_dir(&path)
                     .with_context(|| format!("Failed to read directory: {}", path.display()))?;
 
                 if dir_iter.next().is_none() {
-                    // Directory is empty, skip adding it
                     continue;
                 }
             }
@@ -63,10 +61,6 @@ pub fn get_top_level_dir<'a>(
             file_path.display()
         )
     })?;
-
-    println!("Relative path after base_dir: {:?}", relative);
-
-    // Return the first component if exists
     Ok(relative.components().next().map(|comp| comp.as_os_str()))
 }
 
@@ -75,15 +69,11 @@ pub fn relative_after(path: &Path, base: &Path) -> Option<PathBuf> {
 }
 
 pub fn relative_before(path: &Path, base: &Path) -> Option<PathBuf> {
-    // Try to strip the base prefix first (test/test_Source)
     let stripped = path.strip_prefix(base).ok()?;
 
-    // Get the first component after base (e.g. "Shadow House")
     let mut components = stripped.components();
+    let first_component = components.next()?;
 
-    let first_component = components.next()?; // first directory after base
-
-    // Build the new path: base + first component after base
     let mut new_path = PathBuf::from(base);
     new_path.push(first_component.as_os_str());
 
@@ -91,6 +81,7 @@ pub fn relative_before(path: &Path, base: &Path) -> Option<PathBuf> {
 }
 
 pub fn clear_folder_contents(folder: &Path) -> std::io::Result<()> {
+    // If is a directory
     if folder.is_dir() {
         for entry_result in fs::read_dir(folder)? {
             let entry = entry_result?;
