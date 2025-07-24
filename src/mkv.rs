@@ -25,11 +25,7 @@ pub struct MkvMetadata {
 
 // ffprobe -select_streams v -show_frames -show_entries frame=pkt_pts_time -of csv input.mkv
 
-pub fn process_mkv_file(
-    entry: &EntryKind,
-    base_dir: &Path,
-    output_dir: &Path,
-) -> Result<MkvMetadata> {
+pub fn process_mkv_file(entry: &EntryKind) -> Result<MkvMetadata> {
     // Only process files
     let path = match entry {
         EntryKind::File(p) => p,
@@ -51,51 +47,13 @@ pub fn process_mkv_file(
         duration: 20.0,
     };
 
-    // Get the top-level directory under base_dir
-    let top_level_dir = get_top_level_dir(path, base_dir)?
-        .ok_or_else(|| anyhow::anyhow!("File is directly in base_dir without subdirectory"))?;
-
-    // Build output path
-    let output_path = output_dir
-        .join(&top_level_dir)
-        .join(path.file_name().unwrap())
-        .with_extension("chapters.txt");
-
-    if let Some(parent) = output_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    // Check if output file already exists and warn
-    if output_path.exists() {
-        eprintln!(
-            "Warning: Output file already exists and will be overwritten: {}",
-            output_path.display()
-        );
-    }
-
-    let mut file = File::create(&output_path)?;
-
-    for chapter in &metadata.chapters {
-        // writeln!(
-        //     file,
-        //     "Start: {:<12} End: {:<12} Title: {}",
-        //     chapter.start_time,
-        //     chapter
-        //         .end_time
-        //         .clone()
-        //         .unwrap_or_else(|| "???".to_string()),
-        //     chapter.display.title
-        // )?;
-    }
-    let json = serde_json::to_string_pretty(&metadata)?;
-    writeln!(file, "{}", json)?;
-
-    println!("Wrote: {}", output_path.display());
-
     Ok(metadata)
 }
 
-pub(crate) fn organize_series(path: impl AsRef<Path>, out_path: impl AsRef<Path>) -> Result<()> {
+pub(crate) fn collect_series_with_chapters(
+    path: impl AsRef<Path>,
+    out_path: impl AsRef<Path>,
+) -> Result<()> {
     let list_of_entries = list_dir(&path, true).expect("");
 
     let (with_chapters, without_chapters) =
@@ -124,10 +82,42 @@ pub(crate) fn organize_series(path: impl AsRef<Path>, out_path: impl AsRef<Path>
     // Process each EntryKind::File
     for item in with_chapters {
         match &item {
-            file::EntryKind::File(_path_buf) => {
-                let b = process_mkv_file(&item, path.as_ref(), out_path.as_ref());
+            file::EntryKind::File(path_buf) => {
+                let b = process_mkv_file(&item);
                 match b {
-                    Ok(o) => {}
+                    Ok(mkv_metadata) => {
+                        let base_dir = path.as_ref();
+                        let output_dir = out_path.as_ref();
+
+                        // Get the top-level directory under base_dir
+                        let top_level_dir =
+                            get_top_level_dir(path_buf, base_dir)?.ok_or_else(|| {
+                                anyhow::anyhow!("File is directly in base_dir without subdirectory")
+                            })?;
+
+                        // Build output path
+                        let output_path = output_dir
+                            .join(&top_level_dir)
+                            .join(path_buf.file_name().unwrap())
+                            .with_extension("chapters.txt");
+
+                        if let Some(parent) = output_path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+
+                        // Check if output file already exists and warn
+                        if output_path.exists() {
+                            eprintln!(
+                                "Warning: Output file already exists and will be overwritten: {}",
+                                output_path.display()
+                            );
+                        }
+
+                        let mut file = File::create(&path_buf)?;
+                        let json = serde_json::to_string_pretty(&mkv_metadata)?;
+                        writeln!(file, "{}", json)?;
+                        println!("Wrote: {}", path_buf.display());
+                    }
                     Err(e) => println!("{e}"),
                 }
             }

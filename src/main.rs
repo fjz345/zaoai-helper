@@ -8,7 +8,7 @@ use zaoai_types::file::{
 };
 use zaoai_types::utils::list_dir_with_kind_has_chapters_split;
 
-use crate::mkv::{organize_series, path_exists};
+use crate::mkv::{collect_series_with_chapters, path_exists};
 
 mod mkv;
 
@@ -31,10 +31,10 @@ fn main() -> Result<()> {
     //     std::process::exit(1);
     // }
 
-    let path = "test/test_Source";
+    let path = "test\\test_Source";
     path_exists(path);
 
-    organize_series("test/test_Source", "output").unwrap();
+    collect_series_with_chapters(path, "output").unwrap();
 
     Ok(())
 }
