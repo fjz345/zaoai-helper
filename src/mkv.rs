@@ -6,6 +6,7 @@ use std::{
 
 use anyhow::Error;
 use anyhow::Result;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use zaoai_types::{
@@ -145,10 +146,61 @@ pub(crate) fn collect_series_with_chapters(
     Ok(())
 }
 
+fn ends_with_numbered_json(path: impl AsRef<Path>) -> bool {
+    let re = Regex::new(r"_\d+\.json$").unwrap();
+    match path.as_ref().file_name().and_then(|name| name.to_str()) {
+        Some(file_name) => re.is_match(file_name),
+        None => false,
+    }
+}
+
+fn find_next_available_file(mut out_path: PathBuf) -> Result<PathBuf> {
+    // Ensure filename ends in "_XXX.json"
+    if !ends_with_numbered_json(&out_path) {
+        let file_stem = out_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .ok_or_else(|| anyhow::anyhow!("Invalid file_stem"))?;
+
+        let dir = out_path.parent().unwrap_or_else(|| Path::new(""));
+        let new_name = format!("{}_001.json", file_stem);
+        out_path = dir.join(new_name);
+    }
+
+    // Extract base name (before _XXX), directory, and extension
+    let dir = out_path
+        .parent()
+        .unwrap_or_else(|| Path::new(""))
+        .to_owned();
+    let file_name = out_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| anyhow::anyhow!("Invalid file name"))?;
+
+    let re = regex::Regex::new(r"^(.*)_\d+\.json$")?;
+    let caps = re
+        .captures(file_name)
+        .ok_or_else(|| anyhow::anyhow!("Filename not in expected format"))?;
+
+    let base_name = &caps[1];
+
+    // Try _001, _002, ..., until file doesn't exist
+    for i in 1..999 {
+        let new_name = format!("{}_{:03}.json", base_name, i);
+        let candidate = dir.join(new_name);
+        if !candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    anyhow::bail!("Ran out of numbers (this should be practically impossible)")
+}
+
 pub(crate) fn collect_list_dir_split(
     path: impl AsRef<Path>,
     out_path: impl AsRef<Path>,
 ) -> Result<()> {
+    let mut out_path = out_path.as_ref();
     let list_of_entries = list_dir(&path, true).expect("");
     let list_dir_split = list_dir_with_kind_has_chapters_split(&list_of_entries, true).expect("");
 
@@ -172,9 +224,13 @@ pub(crate) fn collect_list_dir_split(
         entry_kind_vec_string(&list_dir_split.without_chapters)
     );
 
-    let mut out_file = std::fs::File::create(&out_path)?;
+    // Find a filename that does not exist (increase _00X+1)
+    let next_file_name = find_next_available_file(out_path.to_path_buf())?;
 
-    if !path_exists(&out_path) || !out_path.as_ref().is_file() {
+    assert_eq!(ends_with_numbered_json(&next_file_name), true);
+    let mut out_file = std::fs::File::create(&next_file_name)?;
+
+    if !path_exists(&next_file_name) || !next_file_name.is_file() {
         anyhow::bail!("Not valid output file path");
     }
     out_file.write_all(&serde_json::to_vec_pretty(&list_dir_split)?)?;

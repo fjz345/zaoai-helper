@@ -6,7 +6,7 @@ use zaoai_types::chapters::Chapters;
 use zaoai_types::file::{
     EntryKind, clear_folder_contents, list_dir, relative_after, relative_before,
 };
-use zaoai_types::utils::list_dir_with_kind_has_chapters_split;
+use zaoai_types::utils::{ListDirSplit, list_dir_with_kind_has_chapters_split};
 
 use crate::mkv::{collect_list_dir_split, collect_series_with_chapters, path_exists};
 
@@ -32,9 +32,13 @@ fn main() -> Result<()> {
     // }
 
     let path = "test\\test_Source";
+    let out_path = "output\\list_dir_split.json";
     path_exists(path);
 
-    collect_list_dir_split(path, "output\\list_dir_split.json").unwrap();
+    collect_list_dir_split(path, out_path).unwrap();
+
+    // let read_list_dir_split = ListDirSplit::from_file_json(out_path).unwrap();
+    // dbg!(read_list_dir_split);
 
     Ok(())
 }
