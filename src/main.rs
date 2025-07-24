@@ -8,7 +8,7 @@ use zaoai_types::file::{
 };
 use zaoai_types::utils::list_dir_with_kind_has_chapters_split;
 
-use crate::mkv::{collect_series_with_chapters, path_exists};
+use crate::mkv::{collect_list_dir_split, collect_series_with_chapters, path_exists};
 
 mod mkv;
 
@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     let path = "test\\test_Source";
     path_exists(path);
 
-    collect_series_with_chapters(path, "output").unwrap();
+    collect_list_dir_split(path, "output\\list_dir_split.json").unwrap();
 
     Ok(())
 }
