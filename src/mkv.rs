@@ -113,10 +113,10 @@ pub(crate) fn collect_series_with_chapters(
                             );
                         }
 
-                        let mut file = File::create(&path_buf)?;
+                        let mut file = File::create(&output_path)?;
                         let json = serde_json::to_string_pretty(&mkv_metadata)?;
                         writeln!(file, "{}", json)?;
-                        println!("Wrote: {}", path_buf.display());
+                        println!("Wrote: {}", output_path.display());
                     }
                     Err(e) => println!("{e}"),
                 }
