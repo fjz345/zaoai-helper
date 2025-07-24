@@ -3,14 +3,12 @@ name = "zaohelp"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-path = "src/lib.rs"
-
 [[bin]]
 name = "zaohelper"
 path = "src/main.rs"
 
 [dependencies]
+zaoai-types = { path = "../zaoai-types" }
 quick-xml = "0.31"       # for parsing/writing chapter XML
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
@@ -18,3 +16,14 @@ anyhow = "1.0"           # optional, for easier error handling
 thiserror = "1.0"        # optional, custom error types
 tempfile = "3.10"        # optional, for working with temp files
 serde-xml-rs = "0.8.1"
+serde_json = "1.0.141"
+humantime-serde = "1.1.1"
+
+[profile.dev]
+debug = true
+split-debuginfo = "packed"
+debug-assertions = true
+
+[profile.release]
+debug = true
+split-debuginfo = "packed"
