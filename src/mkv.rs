@@ -39,6 +39,35 @@ impl Into<VideoMetadata> for MkvMetadata {
     }
 }
 
+impl MkvMetadata {
+    pub fn extract_opening_times(&self) -> (Option<Duration>, Option<Duration>) {
+        for chapter in &self.chapters {
+            let title = chapter.display.title.to_lowercase();
+            if title.contains("op") || title.contains("opening") {
+                let start = parse_time(&chapter.start_time);
+                let end = chapter.end_time.as_ref().and_then(|s| parse_time(s));
+                return (start, end);
+            }
+        }
+        (None, None)
+    }
+}
+
+fn parse_time(s: &str) -> Option<Duration> {
+    // Expected format: "HH:MM:SS.nnnnnnnnn"
+    let parts: Vec<&str> = s.split([':', '.']).collect();
+    if parts.len() != 4 {
+        return None;
+    }
+
+    let hours = parts[0].parse::<u64>().ok()?;
+    let minutes = parts[1].parse::<u64>().ok()?;
+    let seconds = parts[2].parse::<u64>().ok()?;
+    let nanos = parts[3].parse::<u32>().ok()?;
+
+    Some(Duration::new(hours * 3600 + minutes * 60 + seconds, nanos))
+}
+
 // ffprobe -select_streams v -show_frames -show_entries frame=pkt_pts_time -of csv input.mkv
 
 pub fn process_mkv_file(entry: &EntryKind) -> Result<MkvMetadata> {
