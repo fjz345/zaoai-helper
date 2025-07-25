@@ -28,3 +28,4 @@ debug-assertions = true
 [profile.release]
 debug = true
 split-debuginfo = "packed"
+opt-level = 3
