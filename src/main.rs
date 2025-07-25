@@ -13,9 +13,7 @@ use zaoai_types::file::{
 };
 use zaoai_types::utils::{ListDirSplit, list_dir_with_kind_has_chapters_split};
 
-use zaoai_types::mkv::{
-    collect_list_dir_split, collect_series_with_chapters, path_exists, process_mkv_file,
-};
+use zaoai_types::mkv::{collect_list_dir_split, path_exists};
 
 /*
 Want to do:
@@ -36,8 +34,8 @@ fn main() -> Result<()> {
     // }
 
     let path = r#"\\Znas\plex\Series"#;
-    // let path = "test\\test_Source";
     let out_path = "output\\list_dir_split.json";
+    // let path = "test\\test_Source";
     // let out_path = "output\\list_dir_split.json";
     path_exists(path);
 
