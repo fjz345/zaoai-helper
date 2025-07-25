@@ -9,7 +9,7 @@ use std::io::Write;
 use zaoai_types::ai_labels::{ZAOAI_LABEL_VERSION, ZaoaiLabel, collect_zaoai_labels};
 use zaoai_types::chapters::{Chapters, VideoMetadata};
 use zaoai_types::file::{
-    EntryKind, clear_folder_contents, get_top_level_dir, list_dir, relative_after, relative_before,
+    EntryKind, clear_folder_contents, list_dir, relative_after, relative_before,
 };
 use zaoai_types::utils::{ListDirSplit, list_dir_with_kind_has_chapters_split};
 
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
     let out_path = "output\\list_dir_split.json";
     path_exists(path);
 
-    // collect_list_dir_split(path, out_path).unwrap();
+    collect_list_dir_split(path, out_path).unwrap();
 
     let out_path = "output\\zaoai_labels";
     let read_list_dir_split =
