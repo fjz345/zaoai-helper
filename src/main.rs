@@ -39,13 +39,16 @@ fn main() -> Result<()> {
     let out_path = "output\\list_dir_split.json";
     path_exists(path);
 
+    println!("Collecting list_dir_split...");
     collect_list_dir_split(path, out_path).unwrap();
+    println!("Finished collecting list_dir_split!");
 
+    println!("Collecting zaoai_labels...");
     let out_path = "output\\zaoai_labels";
     let read_list_dir_split =
         ListDirSplit::from_file_json("output\\list_dir_split_001.json").unwrap();
-
     collect_zaoai_labels(&read_list_dir_split, out_path)?;
+    println!("Finished collecting zaoai_labels!");
 
     Ok(())
 }
