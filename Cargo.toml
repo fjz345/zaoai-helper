@@ -9,16 +9,14 @@ path = "src/main.rs"
 
 [dependencies]
 zaoai-types = { path = "../zaoai-types" }
-quick-xml = "0.31"       # for parsing/writing chapter XML
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.219", features = ["derive"] }
 serde_derive = "1.0"
-anyhow = "1.0"           # optional, for easier error handling
-thiserror = "1.0"        # optional, custom error types
-tempfile = "3.10"        # optional, for working with temp files
 serde-xml-rs = "0.8.1"
 serde_json = "1.0.141"
 humantime-serde = "1.1.1"
 regex = "1.11.1"
+anyhow = "1.0.98"           # optional, for easier error handling
+thiserror = "1.0"        # optional, custom error types
 dotenvy = "0.15.7"
 env_logger = "0.11.8"
 soloud = "1.1.1"
