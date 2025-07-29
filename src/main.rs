@@ -3,6 +3,8 @@ use std::io::Read;
 use std::time::Duration;
 use std::{env, fmt::Display, path::Path};
 
+mod soloud;
+
 use anyhow::{Error, Result};
 use serde_json::map::Entry;
 use std::io::Write;
