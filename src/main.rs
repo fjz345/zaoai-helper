@@ -1,35 +1,16 @@
-use std::fs::File;
-use std::io::Read;
-use std::time::Duration;
-use std::{env, fmt::Display, path::Path};
+use std::env;
 
 mod soloud;
 
-use anyhow::{Error, Result};
-use serde_json::map::Entry;
-use std::io::Write;
-use zaoai_types::sound::S_SPECTOGRAM_NUM_BINS;
-use zaoai_types::spectrogram::{
-    SPECTOGRAM_HEIGHT, SPECTOGRAM_WIDTH, generate_spectogram, save_spectrogram,
-};
+use anyhow::Result;
 
-use zaoai_types::ai_labels::{
-    ZAOAI_LABEL_VERSION, ZaoaiLabel, collect_zaoai_labels, generate_zaoai_label_spectrograms,
-};
-use zaoai_types::chapters::{Chapters, VideoMetadata};
-use zaoai_types::file::{
-    EntryKind, clear_folder_contents, list_dir, relative_after, relative_before,
-};
-use zaoai_types::utils::{ListDirSplit, list_dir_with_kind_has_chapters_split};
+use zaoai_types::spectrogram::{SPECTOGRAM_HEIGHT, SPECTOGRAM_WIDTH};
+
+use zaoai_types::ai_labels::{collect_zaoai_labels, generate_zaoai_label_spectrograms};
+use zaoai_types::file::list_dir;
+use zaoai_types::utils::ListDirSplit;
 
 use zaoai_types::mkv::{collect_list_dir_split, path_exists};
-
-/*
-Want to do:
-* Read all files in folder -R
-* Move all files to new folder, split read files in to two folders, no chapters, chapters, also make sure to output a .txt with list of animes that had chapters
-* Futher analyze chapters folder, has opening or not
-*/
 
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
@@ -72,7 +53,6 @@ fn main() -> Result<()> {
         .unwrap_or(SPECTOGRAM_HEIGHT);
     let spectrogram_file_extension =
         std::env::var("SPECTROGRAM_EXTENSION").unwrap_or_else(|_| "spectrogram".to_string());
-
     let list_dir = list_dir(zaoai_labels_out_path, true)?;
     generate_zaoai_label_spectrograms(
         &list_dir,
