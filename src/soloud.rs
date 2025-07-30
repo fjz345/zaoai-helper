@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub static S_IS_DEBUG: i32 = 1;
 pub fn init_soloud() -> Soloud {
     let sl = Soloud::default().expect("Soloud Init failed");
@@ -9,8 +11,6 @@ pub fn init_soloud() -> Soloud {
     sl
 }
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use plotlib::page::Page;
