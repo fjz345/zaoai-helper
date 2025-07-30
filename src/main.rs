@@ -33,10 +33,7 @@ Want to do:
 
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
-    unsafe { env::set_var("RUST_BACKTRACE", "1") };
-
-    unsafe { env::set_var("RUST_LOG", "debug") }; // or "info" or "debug"
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    env_logger::init();
 
     #[allow(unused)]
     let args: Vec<String> = env::args().collect();
